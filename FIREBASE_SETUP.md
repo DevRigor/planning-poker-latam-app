@@ -33,9 +33,24 @@ Una vez creada la base de datos, configura las reglas:
 \`\`\`json
 {
   "rules": {
+    ".read": "auth != null",
+    ".write": "auth != null",
     "room": {
-      ".read": "auth != null",
-      ".write": "auth != null"
+      ".read": true,
+      ".write": true,
+      "participants": {
+        "$uid": {
+          ".write": "auth != null"
+        }
+      },
+      "votes": {
+        "$uid": {
+          ".write": "auth != null"
+        }
+      },
+      "gameState": {
+        ".write": "auth != null"
+      }
     }
   }
 }
