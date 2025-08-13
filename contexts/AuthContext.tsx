@@ -12,8 +12,6 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>
   logout: () => Promise<void>
   clearError: () => void
-  isFirebaseConfigured: boolean
-  needsDomainAuth: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -22,8 +20,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [isFirebaseConfigured, setIsFirebaseConfigured] = useState(true)
-  const [needsDomainAuth, setNeedsDomainAuth] = useState(false)
 
   useEffect(() => {
     console.log("AuthContext: Setting up Firebase auth listener")
@@ -34,10 +30,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log("AuthContext: Auth state changed:", user ? `User: ${user.email}` : "No user")
         setUser(user)
         setLoading(false)
-        setIsFirebaseConfigured(true)
-        setNeedsDomainAuth(false)
-
-        // NO tocar localStorage aquí - dejar que LoginCard lo maneje
       },
       (error) => {
         console.error("AuthContext: Auth state change error:", error)
@@ -46,41 +38,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
     )
 
-    return unsubscribe
-  }, [])
+    // Set a timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      if (loading) {
+        console.log("AuthContext: Timeout reached, stopping loading")
+        setLoading(false)
+      }
+    }, 10000) // 10 seconds timeout
+
+    return () => {
+      unsubscribe()
+      clearTimeout(timeoutId)
+    }
+  }, []) // Only run once
 
   const signInWithGoogle = async () => {
     try {
       setError(null)
-      setNeedsDomainAuth(false)
-      console.log("AuthContext: Starting Google sign in with Firebase...")
+      console.log("AuthContext: Starting Google sign in...")
 
       const result = await signInWithPopup(auth, googleProvider)
-      console.log("AuthContext: Firebase sign in successful:", result.user.email)
-      setIsFirebaseConfigured(true)
+      console.log("AuthContext: Sign in successful:", result.user.email)
     } catch (error: any) {
-      console.error("AuthContext: Firebase sign in error:", error)
+      console.error("AuthContext: Sign in error:", error)
 
       let errorMessage = "Error al iniciar sesión con Google"
 
       switch (error.code) {
         case "auth/unauthorized-domain":
-          errorMessage = `El dominio ${window.location.hostname} no está autorizado para autenticación.`
-          setNeedsDomainAuth(true)
-          setIsFirebaseConfigured(true)
+          errorMessage = `El dominio ${window.location.hostname} no está autorizado.`
           break
         case "auth/configuration-not-found":
           errorMessage = "El proveedor de Google no está configurado en Firebase."
-          setIsFirebaseConfigured(false)
           break
         case "auth/popup-closed-by-user":
-          // Don't show error for user-cancelled popup - this is normal behavior
-          console.log("AuthContext: User closed popup, no error shown")
-          return // Exit without setting error or throwing
+          console.log("AuthContext: User closed popup")
+          return // No mostrar error
         case "auth/cancelled-popup-request":
-          // Don't show error for cancelled popup request - this is normal
-          console.log("AuthContext: Popup request cancelled, no error shown")
-          return // Exit without setting error or throwing
+          console.log("AuthContext: Popup cancelled")
+          return // No mostrar error
         case "auth/network-request-failed":
           errorMessage = "Error de conexión. Verifica tu conexión a internet."
           break
@@ -96,20 +92,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     try {
       setError(null)
-      console.log("AuthContext: User signing out...")
-
+      console.log("AuthContext: Signing out...")
       await signOut(auth)
-      console.log("AuthContext: User signed out successfully")
+      console.log("AuthContext: Signed out successfully")
     } catch (error: any) {
       console.error("AuthContext: Error signing out:", error)
       setError(`Error al cerrar sesión: ${error.message}`)
+      // Forzar logout local incluso si hay error
       setUser(null)
     }
   }
 
   const clearError = () => {
     setError(null)
-    setNeedsDomainAuth(false)
   }
 
   const value = {
@@ -119,8 +114,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signInWithGoogle,
     logout,
     clearError,
-    isFirebaseConfigured,
-    needsDomainAuth,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

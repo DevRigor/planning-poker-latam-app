@@ -1,11 +1,13 @@
 # Planning Poker App
 
-Una aplicación de Planning Poker desarrollada con Next.js, Firebase Realtime Database y Firebase Auth.
+Una aplicación de Planning Poker desarrollada con Next.js 15, React 19, Firebase Realtime Database y Firebase Auth.
 
 ## Características
 
+- ✅ **React 19 Compatible** - Usa las últimas características de React
+- ✅ **Next.js 15** - Framework moderno con App Router
 - ✅ Autenticación con Google usando Firebase Auth
-- ✅ Sala única para todos los usuarios
+- ✅ Salas únicas y compartibles
 - ✅ Votación privada hasta que todos voten
 - ✅ Valores de votación: 1, 2, 3, 5, 8, ☕
 - ✅ Lista de participantes en tiempo real
@@ -15,6 +17,45 @@ Una aplicación de Planning Poker desarrollada con Next.js, Firebase Realtime Da
 - ✅ **Timeout automático de 5 minutos**
 - ✅ **Logout automático por inactividad**
 - ✅ Limpieza automática de participantes
+- ✅ **URLs compartibles** - Cada sala tiene su propia URL
+- ✅ **Eliminación automática** - Salas vacías se eliminan automáticamente
+
+## Tecnologías Utilizadas
+
+### Core
+- **Next.js 15.1.3** - Framework de React con App Router
+- **React 19.1.1** - Biblioteca de UI con las últimas características
+- **TypeScript 5.7.2** - Tipado estático
+- **Firebase 10.14.1** - Backend como servicio
+
+### UI y Estilos
+- **Tailwind CSS 3.4.17** - Framework de CSS utility-first
+- **Radix UI** - Componentes primitivos accesibles
+- **Lucide React** - Iconos modernos
+- **class-variance-authority** - Gestión de variantes de clases
+
+### Dependencias Principales
+
+\`\`\`json
+{
+  "dependencies": {
+    "next": "15.1.3",
+    "react": "19.1.1",
+    "react-dom": "19.1.1",
+    "firebase": "^10.14.1",
+    "@radix-ui/react-alert-dialog": "^1.1.2",
+    "@radix-ui/react-dialog": "^1.1.2",
+    "@radix-ui/react-dropdown-menu": "^2.1.2",
+    "@radix-ui/react-progress": "^1.1.1",
+    "@radix-ui/react-slot": "^1.1.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.468.0",
+    "tailwind-merge": "^2.5.4",
+    "tailwindcss-animate": "^1.0.7"
+  }
+}
+\`\`\`
 
 ## Funcionalidad de Timeout
 
@@ -45,32 +86,74 @@ Cuando un usuario no vota dentro del tiempo límite:
 - **Fácil re-ingreso**: Un clic para volver a iniciar sesión
 - **Tip educativo**: Consejos para evitar futuras desconexiones
 
-## Estructura del Proyecto
+## Salas Compartibles
 
+### 🔗 URLs Únicas
+
+Cada sala tiene su propia URL única y compartible:
+
+- **Formato**: `https://tu-app.com/room/rapido-equipo-123`
+- **Generación automática**: IDs únicos y fáciles de recordar
+- **Validación**: URLs inválidas se limpian automáticamente
+
+### 📤 Compartir Salas
+
+- **Copiar URL**: Botón para copiar la URL de la sala
+- **Compartir nativo**: Usa la API de compartir del navegador cuando está disponible
+- **QR Code**: (Futuro) Generar códigos QR para fácil acceso móvil
+
+### 🧹 Limpieza Automática
+
+- **Salas vacías**: Se eliminan automáticamente después de 30 segundos
+- **Detección inteligente**: Distingue entre desconexiones temporales y abandono real
+- **Notificaciones**: Los usuarios son informados cuando una sala es eliminada
+
+## Instalación y Configuración
+
+### 1. Requisitos
+
+- **Node.js 18+** - Recomendado Node.js 20 LTS
+- **npm, yarn, o pnpm** - Gestor de paquetes
+- **Cuenta de Firebase** - Para autenticación y base de datos
+
+### 2. Clonar e instalar dependencias
+
+\`\`\`bash
+# Clonar el repositorio
+git clone <tu-repositorio>
+cd planning-poker-app
+
+# Instalar dependencias (sin warnings de React 19)
+npm install
 \`\`\`
-├── app/
-│   ├── layout.tsx          # Layout principal con AuthProvider
-│   ├── page.tsx            # Página principal
-│   └── globals.css         # Estilos globales
-├── components/
-│   ├── LoginCard.tsx       # Componente de login con mensaje de timeout
-│   ├── PlanningRoom.tsx    # Sala principal
-│   ├── ParticipantsList.tsx # Lista de participantes
-│   ├── ParticipantStatistics.tsx # Estadísticas de participantes
-│   ├── VoteStatistics.tsx  # Estadísticas de votación
-│   ├── VoteTimeoutIndicator.tsx # Indicador de timeout
-│   └── EditNameDialog.tsx  # Dialog para editar nombre
-├── contexts/
-│   └── AuthContext.tsx     # Context de autenticación
-├── hooks/
-│   ├── useRoom.ts          # Hook para manejar la sala
-│   └── useVoteTimeout.ts   # Hook para manejar timeouts
-├── lib/
-│   └── firebase.ts         # Configuración de Firebase
-├── types/
-│   └── index.ts            # Tipos TypeScript
-└── .env.example            # Variables de entorno de ejemplo
+
+### 3. Configurar variables de entorno
+
+Crea un archivo `.env.local` basado en `.env.example`:
+
+\`\`\`bash
+cp .env.example .env.local
 \`\`\`
+
+Completa las variables con tus credenciales de Firebase:
+
+\`\`\`env
+NEXT_PUBLIC_FIREBASE_API_KEY=xxx
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=xxx.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_DATABASE_URL=https://xxx-default-rtdb.firebaseio.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=xxx
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=xxx.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=xxx
+NEXT_PUBLIC_FIREBASE_APP_ID=1:xxx:web:xxx
+\`\`\`
+
+### 4. Ejecutar en desarrollo
+
+\`\`\`bash
+npm run dev
+\`\`\`
+
+La aplicación estará disponible en `http://localhost:3000`
 
 ## Configuración de Firebase
 
@@ -100,145 +183,63 @@ Cuando un usuario no vota dentro del tiempo límite:
   "rules": {
     ".read": "auth != null",
     ".write": "auth != null",
-    "room": {
-      ".read": true,
-      ".write": true,
-      "participants": {
-        "$uid": {
+    "rooms": {
+      "$roomId": {
+        ".read": true,
+        ".write": true,
+        "participants": {
+          "$uid": {
+            ".write": "auth != null && auth.uid == $uid"
+          }
+        },
+        "votes": {
+          "$uid": {
+            ".write": "auth != null && auth.uid == $uid"
+          }
+        },
+        "gameState": {
           ".write": "auth != null"
         }
-      },
-      "votes": {
-        "$uid": {
-          ".write": "auth != null"
-        }
-      },
-      "gameState": {
-        ".write": "auth != null"
       }
     }
   }
 }
 \`\`\`
 
-### 4. Registrar la aplicación web
-
-1. En la página principal del proyecto, haz clic en el icono de web (</>) para añadir una aplicación web
-2. Asigna un nombre a tu aplicación (ej. "Planning Poker")
-3. Marca la opción "Also set up Firebase Hosting" si planeas usar Firebase Hosting
-4. Haz clic en "Register app"
-5. Copia las credenciales de configuración que se muestran
-
-### 5. Configurar dominios autorizados
+### 4. Configurar dominios autorizados
 
 1. Ve a Authentication > Settings > Authorized domains
 2. Añade los dominios desde los que se accederá a la aplicación:
    - `localhost` (para desarrollo local)
    - Tu dominio de producción (ej. `your-app.vercel.app`)
 
-## Instalación y Configuración
-
-### 1. Clonar e instalar dependencias
-
-\`\`\`bash
-npm install
-\`\`\`
-
-### 2. Configurar variables de entorno
-
-Crea un archivo `.env.local` basado en `.env.example`:
-
-\`\`\`bash
-cp .env.example .env.local
-\`\`\`
-
-Completa las variables con tus credenciales de Firebase:
+## Estructura del Proyecto
 
 \`\`\`
-NEXT_PUBLIC_FIREBASE_API_KEY=xxx
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=xxx.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_DATABASE_URL=https://xxx-default-rtdb.firebaseio.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=xxx
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=xxx.appspot.com
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=xxx
-NEXT_PUBLIC_FIREBASE_APP_ID=1:xxx:web:xxx
-\`\`\`
-
-### 3. Ejecutar en desarrollo
-
-\`\`\`bash
-npm run dev
-\`\`\`
-
-La aplicación estará disponible en `http://localhost:3000`
-
-## Solución de problemas comunes
-
-### Error: Firebase: Error (auth/configuration-not-found)
-
-Este error puede ocurrir por varias razones:
-
-1. **Variables de entorno incorrectas**: Verifica que todas las variables en `.env.local` estén correctamente configuradas
-2. **Proveedor de Google no habilitado**: Asegúrate de haber habilitado el proveedor de Google en Firebase Authentication
-3. **Dominio no autorizado**: Verifica que el dominio desde el que accedes esté en la lista de dominios autorizados
-4. **Cookies bloqueadas**: Asegúrate de que tu navegador permita cookies de terceros para la autenticación
-
-### Error: PERMISSION_DENIED
-
-Este error puede ocurrir por:
-
-1. **Reglas de seguridad restrictivas**: Asegúrate de que las reglas permitan operaciones de lectura/escritura
-2. **Usuario no autenticado**: Verifica que el usuario esté correctamente autenticado
-3. **Operaciones después del logout**: Evita operaciones de base de datos después de cerrar sesión
-
-### Desconexión por Timeout
-
-Si fuiste desconectado automáticamente:
-
-1. **Es normal**: El sistema protege contra usuarios inactivos
-2. **Vuelve a iniciar sesión**: Un clic en "Iniciar sesión con Google"
-3. **Vota más rápido**: Tienes 5 minutos para votar
-4. **Mantente activo**: Los usuarios que ya votaron no tienen timeout
-
-### Error: Firebase: Error (auth/popup-closed-by-user)
-
-Este error ocurre cuando el usuario cierra la ventana emergente de autenticación antes de completar el proceso. No requiere acción.
-
-## Estructura de la Base de Datos
-
-La aplicación usa la siguiente estructura en Firebase Realtime Database:
-
-\`\`\`json
-{
-  "room": {
-    "participants": {
-      "userId1": {
-        "id": "userId1",
-        "name": "John Doe",
-        "hasVoted": true,
-        "joinedAt": 1640995200000,
-        "voteStartedAt": 1640995200000
-      },
-      "userId2": {
-        "id": "userId2", 
-        "name": "Jane Smith",
-        "hasVoted": false,
-        "joinedAt": 1640995300000,
-        "voteStartedAt": 1640995200000
-      }
-    },
-    "votes": {
-      "userId1": "5",
-      "userId2": "3"
-    },
-    "gameState": {
-      "isRevealed": false,
-      "roundId": "round_1640995200000",
-      "createdAt": 1640995200000,
-      "voteStartedAt": 1640995200000
-    }
-  }
-}
+├── app/
+│   ├── layout.tsx          # Layout principal con AuthProvider
+│   ├── page.tsx            # Página principal con manejo de URLs
+│   └── globals.css         # Estilos globales
+├── components/
+│   ├── ui/                 # Componentes UI compatibles con React 19
+│   ├── LoginCard.tsx       # Componente de login mejorado
+│   ├── PlanningRoom.tsx    # Sala principal
+│   ├── RoomSelector.tsx    # Selector de salas
+│   ├── ParticipantsList.tsx # Lista de participantes
+│   ├── VoteStatistics.tsx  # Estadísticas de votación
+│   └── VoteTimeoutIndicator.tsx # Indicador de timeout
+├── contexts/
+│   └── AuthContext.tsx     # Context de autenticación
+├── hooks/
+│   ├── useRoom.ts          # Hook para manejar salas
+│   └── useVoteTimeout.ts   # Hook para manejar timeouts
+├── lib/
+│   ├── firebase.ts         # Configuración de Firebase
+│   ├── roomUtils.ts        # Utilidades para salas
+│   └── roomCleanup.ts      # Limpieza automática de salas
+├── types/
+│   └── index.ts            # Tipos TypeScript
+└── .env.example            # Variables de entorno de ejemplo
 \`\`\`
 
 ## Deploy en Vercel
@@ -266,19 +267,107 @@ Vercel desplegará automáticamente tu aplicación.
 
 ## Uso de la Aplicación
 
+### 🏠 Página Principal
 1. **Login**: Los usuarios inician sesión con su cuenta de Google
-2. **Unirse a la sala**: Automáticamente se unen a la sala única
-3. **Votar**: Seleccionan un valor (1, 2, 3, 5, 8, ☕) **dentro de 5 minutos**
-4. **Esperar**: Los votos permanecen ocultos hasta que todos voten
-5. **Ver resultados**: Una vez que todos votan, se revelan los resultados
-6. **Nueva ronda**: Cualquier usuario puede resetear para una nueva votación
-7. **Timeout**: Los usuarios inactivos son deslogueados automáticamente
+2. **Selector de salas**: Crear nueva sala o unirse a una existente
 
-## Tecnologías Utilizadas
+### 🏢 Crear Sala
+1. **Clic en "Crear Sala"**: Genera automáticamente un ID único
+2. **Compartir**: Copia la URL o usa el botón de compartir nativo
+3. **Acceso inmediato**: Entra automáticamente a la sala creada
 
-- **Next.js 14** - Framework de React
-- **Firebase Auth** - Autenticación con Google
-- **Firebase Realtime Database** - Base de datos en tiempo real
-- **Tailwind CSS** - Estilos
-- **shadcn/ui** - Componentes de UI
-- **TypeScript** - Tipado estático
+### 🚪 Unirse a Sala
+1. **Por ID**: Ingresa el ID de la sala (ej. `rapido-equipo-123`)
+2. **Por URL**: Pega la URL completa de la sala
+3. **Validación**: URLs inválidas se detectan y limpian automáticamente
+
+### 🗳️ Votación
+1. **Seleccionar voto**: Elige un valor (1, 2, 3, 5, 8, ☕) **dentro de 5 minutos**
+2. **Esperar**: Los votos permanecen ocultos hasta que todos voten
+3. **Ver resultados**: Una vez que todos votan, se revelan automáticamente
+4. **Nueva ronda**: Cualquier usuario puede resetear para una nueva votación
+
+### ⏰ Sistema de Timeout
+1. **Indicador visual**: Muestra tiempo restante para votar
+2. **Advertencias**: Avisos progresivos antes del logout automático
+3. **Logout automático**: Usuarios inactivos son deslogueados automáticamente
+4. **Re-login**: Fácil acceso para volver a la sala
+
+## Solución de problemas comunes
+
+### ✅ Sin warnings de dependencias
+
+Esta versión está optimizada para React 19 y no debería mostrar warnings de peer dependencies.
+
+### Error: Firebase: Error (auth/configuration-not-found)
+
+Este error puede ocurrir por varias razones:
+
+1. **Variables de entorno incorrectas**: Verifica que todas las variables en `.env.local` estén correctamente configuradas
+2. **Proveedor de Google no habilitado**: Asegúrate de haber habilitado el proveedor de Google en Firebase Authentication
+3. **Dominio no autorizado**: Verifica que el dominio desde el que accedes esté en la lista de dominios autorizados
+
+### Error: PERMISSION_DENIED
+
+Este error puede ocurrir por:
+
+1. **Reglas de seguridad restrictivas**: Asegúrate de que las reglas permitan operaciones de lectura/escritura
+2. **Usuario no autenticado**: Verifica que el usuario esté correctamente autenticado
+3. **Operaciones después del logout**: Evita operaciones de base de datos después de cerrar sesión
+
+### Desconexión por Timeout
+
+Si fuiste desconectado automáticamente:
+
+1. **Es normal**: El sistema protege contra usuarios inactivos
+2. **Vuelve a iniciar sesión**: Un clic en "Iniciar sesión con Google"
+3. **Vota más rápido**: Tienes 5 minutos para votar
+4. **Mantente activo**: Los usuarios que ya votaron no tienen timeout
+
+## Estructura de la Base de Datos
+
+La aplicación usa la siguiente estructura en Firebase Realtime Database:
+
+\`\`\`json
+{
+  "rooms": {
+    "rapido-equipo-123": {
+      "participants": {
+        "userId1": {
+          "id": "userId1",
+          "name": "John Doe",
+          "hasVoted": true,
+          "joinedAt": 1640995200000,
+          "voteStartedAt": 1640995200000
+        }
+      },
+      "votes": {
+        "userId1": "5"
+      },
+      "gameState": {
+        "isRevealed": false,
+        "roundId": "round_1640995200000",
+        "createdAt": 1640995200000,
+        "voteStartedAt": 1640995200000
+      },
+      "roomInfo": {
+        "id": "rapido-equipo-123",
+        "createdAt": 1640995200000,
+        "createdBy": "userId1"
+      }
+    }
+  }
+}
+\`\`\`
+
+## Contribuir
+
+1. Fork el proyecto
+2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
+3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
+4. Push a la rama (`git push origin feature/AmazingFeature`)
+5. Abre un Pull Request
+
+## Licencia
+
+Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE.md](LICENSE.md) para detalles.

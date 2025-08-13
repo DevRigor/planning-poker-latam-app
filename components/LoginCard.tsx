@@ -3,122 +3,83 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/contexts/AuthContext"
-import { LogIn, X, RefreshCw, ExternalLink, Trash2, Users, ArrowRight } from "lucide-react"
+import { LogIn, Wifi, WifiOff, Users, AlertTriangle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 
 interface LoginCardProps {
   pendingRoomId?: string | null
-  onClearPendingRoom?: () => void
 }
 
-export function LoginCard({ pendingRoomId, onClearPendingRoom }: LoginCardProps) {
-  const { signInWithGoogle, error, loading, clearError, needsDomainAuth } = useAuth()
+export function LoginCard({ pendingRoomId }: LoginCardProps) {
+  const { signInWithGoogle, error, user } = useAuth()
   const [isSigningIn, setIsSigningIn] = useState(false)
-  const [debugInfo, setDebugInfo] = useState<string>("")
-  const [forceCleared, setForceCleared] = useState(false)
+  const [isOnline, setIsOnline] = useState(true)
+  const [wasLoggedOut, setWasLoggedOut] = useState(false)
+  const router = useRouter()
 
-  // Función de limpieza agresiva
-  const forceCleanStorage = () => {
-    if (typeof window !== "undefined") {
-      try {
-        // Método 1: Remover claves específicas
-        localStorage.removeItem("voteTimeoutLogout")
-        localStorage.removeItem("voteTimeoutTimestamp")
-
-        // Método 2: Iterar y remover cualquier clave relacionada con timeout
-        const keysToRemove: string[] = []
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i)
-          if (key && (key.includes("timeout") || key.includes("Timeout"))) {
-            keysToRemove.push(key)
-          }
-        }
-        keysToRemove.forEach((key) => localStorage.removeItem(key))
-
-        // Método 3: Si todo falla, limpiar todo
-        if (localStorage.getItem("voteTimeoutLogout")) {
-          console.log("Force clearing all localStorage")
-          localStorage.clear()
-        }
-
-        setForceCleared(true)
-        setDebugInfo("Storage force cleaned")
-        console.log("Force clean completed")
-
-        // Recargar después de un momento
-        setTimeout(() => {
-          window.location.reload()
-        }, 1000)
-      } catch (error) {
-        console.error("Error cleaning storage:", error)
-        // Si hay error, limpiar todo
-        localStorage.clear()
-        window.location.reload()
-      }
-    }
-  }
-
-  // Check if user was logged out due to timeout - SIMPLIFICADO
+  // Check if user was logged out due to timeout
   useEffect(() => {
-    if (typeof window !== "undefined" && !forceCleared) {
+    if (typeof window !== "undefined") {
       const timeoutLogout = localStorage.getItem("voteTimeoutLogout")
-
-      console.log("LoginCard: Checking for timeout data:", timeoutLogout)
-
-      // Si existe cualquier dato de timeout, limpiarlo inmediatamente
-      if (timeoutLogout) {
-        console.log("LoginCard: Found timeout data, force cleaning...")
-        forceCleanStorage()
-        return
+      if (timeoutLogout === "true") {
+        setWasLoggedOut(true)
+        localStorage.removeItem("voteTimeoutLogout")
       }
-
-      setDebugInfo("No timeout data found")
     }
-  }, [forceCleared])
+  }, [])
+
+  // Redirect to room after login - FIXED: Only redirect once
+  useEffect(() => {
+    if (user && pendingRoomId && !isSigningIn) {
+      console.log(`Redirecting authenticated user to room: ${pendingRoomId}`)
+      router.push(`/room/${pendingRoomId}`)
+    }
+  }, [user, pendingRoomId, router, isSigningIn])
+
+  // Monitor network status
+  useEffect(() => {
+    const updateOnlineStatus = () => {
+      setIsOnline(navigator.onLine)
+    }
+
+    window.addEventListener("online", updateOnlineStatus)
+    window.addEventListener("offline", updateOnlineStatus)
+
+    return () => {
+      window.removeEventListener("online", updateOnlineStatus)
+      window.removeEventListener("offline", updateOnlineStatus)
+    }
+  }, [])
 
   const handleSignIn = async () => {
     try {
       setIsSigningIn(true)
-      clearError()
-
-      // Limpieza antes del login
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("voteTimeoutLogout")
-        localStorage.removeItem("voteTimeoutTimestamp")
+      if (!isOnline) {
+        throw new Error("Sin conexión a internet")
       }
-
+      console.log("Starting Google sign in...")
       await signInWithGoogle()
-      // El redireccionamiento a la sala pendiente se maneja en el componente padre
-    } catch (error: any) {
+      console.log("Sign in successful")
+    } catch (error) {
       console.error("Login error:", error)
-
-      // Don't show error for user-cancelled actions
-      if (error.code === "auth/popup-closed-by-user" || error.code === "auth/cancelled-popup-request") {
-        console.log("User cancelled login, no error shown")
-        return // Exit gracefully without showing error
-      }
-
-      // For other errors, the AuthContext will handle setting the error message
     } finally {
       setIsSigningIn(false)
     }
   }
 
-  const handleClearPendingRoom = () => {
-    if (onClearPendingRoom) {
-      onClearPendingRoom()
-    }
-  }
-
-  const openDomainSettings = () => {
-    window.open(
-      "https://console.firebase.google.com/project/planning-poker-latam-app/authentication/settings",
-      "_blank",
+  // Don't show login card if user is already authenticated and we have a pending room
+  if (user && pendingRoomId) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p>Redirigiendo a la sala {pendingRoomId}...</p>
+        </div>
+      </div>
     )
   }
-
-  const isLoading = loading || isSigningIn
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
@@ -126,109 +87,89 @@ export function LoginCard({ pendingRoomId, onClearPendingRoom }: LoginCardProps)
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">Planning Poker</CardTitle>
           <CardDescription>
-            {pendingRoomId
-              ? `Inicia sesión para unirte a la sala ${pendingRoomId}`
-              : "Inicia sesión para unirte a la sala de votación"}
+            {pendingRoomId ? `Inicia sesión para unirte a la sala: ${pendingRoomId}` : "Inicia sesión para comenzar"}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Pending room info */}
-          {pendingRoomId && (
-            <Alert className="border-blue-200 bg-blue-50">
-              <Users className="h-4 w-4" />
-              <AlertDescription className="text-blue-800">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-medium">Sala solicitada:</div>
-                    <div className="font-mono text-sm">{pendingRoomId}</div>
-                  </div>
-                  <ArrowRight className="h-4 w-4 opacity-50" />
-                </div>
-                <div className="text-xs mt-2 opacity-75">
-                  Serás redirigido automáticamente después de iniciar sesión
-                </div>
+          {/* Timeout logout message */}
+          {wasLoggedOut && (
+            <Alert variant="warning">
+              <AlertTriangle className="h-4 w-4 text-yellow-600" />
+              <AlertDescription className="text-yellow-800">
+                <strong>Sesión cerrada por inactividad</strong>
+                <br />
+                <span className="text-sm">
+                  Fuiste desconectado automáticamente por no votar dentro del tiempo límite (5 minutos).
+                </span>
               </AlertDescription>
             </Alert>
           )}
 
-          {/* Debug info */}
-          {debugInfo && <div className="text-xs text-gray-500 p-2 bg-gray-50 rounded">Debug: {debugInfo}</div>}
-
-          {/* Force clear message */}
-          {forceCleared && (
-            <Alert className="border-green-200 bg-green-50">
-              <div className="text-green-800">
-                <strong>✅ Limpieza completada</strong>
+          {/* Información de sala pendiente */}
+          {pendingRoomId && (
+            <Alert className="bg-blue-50 border-blue-200">
+              <Users className="h-4 w-4 text-blue-600" />
+              <AlertDescription className="text-blue-800">
+                <strong>Sala detectada:</strong> {pendingRoomId}
                 <br />
-                Los datos problemáticos han sido eliminados. La página se recargará automáticamente.
-              </div>
+                <span className="text-sm">Serás redirigido automáticamente después del login</span>
+              </AlertDescription>
             </Alert>
           )}
 
-          {/* Regular error message */}
-          {error && (
+          {!isOnline && (
             <Alert variant="destructive">
-              <div className="flex justify-between items-start">
-                <AlertDescription className="flex-1">{error}</AlertDescription>
-                <Button variant="ghost" size="sm" onClick={clearError} className="h-auto p-1 ml-2">
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
+              <WifiOff className="h-4 w-4" />
+              <AlertDescription>Sin conexión a internet</AlertDescription>
             </Alert>
           )}
 
-          <Button onClick={handleSignIn} className="w-full" size="lg" disabled={isLoading || forceCleared}>
-            {isLoading ? (
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-800 text-sm">{error}</p>
+            </div>
+          )}
+
+          <Button onClick={handleSignIn} className="w-full" size="lg" disabled={isSigningIn || !isOnline}>
+            {isSigningIn ? (
               <>
                 <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
                 Iniciando sesión...
               </>
-            ) : forceCleared ? (
+            ) : !isOnline ? (
               <>
-                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                Recargando...
+                <WifiOff className="mr-2 h-4 w-4" />
+                Sin conexión
               </>
             ) : (
               <>
                 <LogIn className="mr-2 h-4 w-4" />
-                Iniciar sesión con Google
+                {pendingRoomId ? `Iniciar sesión y unirse a ${pendingRoomId}` : "Iniciar sesión con Google"}
               </>
             )}
           </Button>
 
-          {/* Clear pending room button */}
-          {pendingRoomId && !forceCleared && (
-            <Button onClick={handleClearPendingRoom} variant="outline" className="w-full bg-transparent" size="sm">
-              <X className="mr-2 h-4 w-4" />
-              Cancelar y ir al inicio
-            </Button>
-          )}
-
-          {/* Emergency clean button - always visible if there are issues */}
-          {!forceCleared && (
-            <div className="space-y-2 pt-2 border-t">
-              <p className="text-xs text-gray-600 text-center">¿No puedes iniciar sesión?</p>
-              <Button onClick={forceCleanStorage} variant="destructive" size="lg" className="w-full">
-                <Trash2 className="mr-2 h-4 w-4" />🚨 Limpiar Todo y Recargar
-              </Button>
-              <p className="text-xs text-gray-500 text-center">
-                Esto eliminará todos los datos locales y recargará la página
-              </p>
-            </div>
-          )}
-
-          {error && error.includes("dominio") && (
-            <div className="space-y-2">
-              <Button onClick={openDomainSettings} variant="outline" className="w-full bg-transparent" size="lg">
-                <ExternalLink className="mr-2 h-4 w-4" />
-                Configurar dominios en Firebase
-              </Button>
-            </div>
-          )}
-
           <div className="text-center text-sm text-muted-foreground">
             <p>Necesitas una cuenta de Google para acceder</p>
+            {isOnline && (
+              <div className="flex items-center justify-center gap-1 mt-1">
+                <Wifi className="h-3 w-3 text-green-500" />
+                <span className="text-xs text-green-600">Conectado</span>
+              </div>
+            )}
           </div>
+
+          {wasLoggedOut && (
+            <div className="text-center text-xs text-gray-500 bg-yellow-50 p-2 rounded">
+              💡 <strong>Tip:</strong> Para evitar desconexiones, vota dentro de los 5 minutos después de que comience
+              una ronda.
+            </div>
+          )}
+
+          {/* Debug info */}
+          {pendingRoomId && (
+            <div className="text-center text-xs text-gray-400 border-t pt-2">Debug: Room ID = {pendingRoomId}</div>
+          )}
         </CardContent>
       </Card>
     </div>

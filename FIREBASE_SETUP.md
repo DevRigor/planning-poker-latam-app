@@ -5,7 +5,7 @@
 ### 1. Habilitar Authentication
 
 1. Ve a [Firebase Console](https://console.firebase.google.com/)
-2. Selecciona tu proyecto: `planning-poker-latam-app`
+2. Selecciona tu proyecto: `planning-poker-v0`
 3. En el menú lateral, ve a **Build > Authentication**
 4. Haz clic en **Get started**
 5. Ve a la pestaña **Sign-in method**
@@ -33,22 +33,9 @@ Una vez creada la base de datos, configura las reglas:
 \`\`\`json
 {
   "rules": {
-    ".read": "auth != null",
-    ".write": "auth != null",
-    "room": {
-      ".read": true,
-      ".write": true,
-      "participants": {
-        "$uid": {
-          ".write": "auth != null"
-        }
-      },
-      "votes": {
-        "$uid": {
-          ".write": "auth != null"
-        }
-      },
-      "gameState": {
+    "rooms": {
+      "$roomId": {
+        ".read": "auth != null",
         ".write": "auth != null"
       }
     }
@@ -69,9 +56,10 @@ Una vez creada la base de datos, configura las reglas:
 ### 5. Verificar configuración
 
 Tu configuración actual es:
-- **Project ID**: planning-poker-latam-app
-- **Auth Domain**: planning-poker-latam-app.firebaseapp.com
-- **Database URL**: https://planning-poker-latam-app-default-rtdb.firebaseio.com
+- **Project ID**: planning-poker-v0
+- **Auth Domain**: planning-poker-v0.firebaseapp.com
+- **Database URL**: https://planning-poker-v0-default-rtdb.firebaseio.com/
+- **App ID**: 1:146704816058:web:f078fa4b0e4af8cbff6f83
 
 ## Estructura de datos esperada
 
@@ -79,22 +67,30 @@ La aplicación creará automáticamente esta estructura en tu Realtime Database:
 
 \`\`\`json
 {
-  "room": {
-    "participants": {
-      "userId1": {
-        "id": "userId1",
-        "name": "Usuario 1",
-        "hasVoted": false,
-        "joinedAt": 1640995200000
+  "rooms": {
+    "rapido-equipo-123": {
+      "participants": {
+        "userId1": {
+          "id": "userId1",
+          "name": "Usuario 1",
+          "hasVoted": false,
+          "joinedAt": 1640995200000
+        }
+      },
+      "votes": {
+        "userId1": "5"
+      },
+      "gameState": {
+        "isRevealed": false,
+        "roundId": "round_1640995200000",
+        "createdAt": 1640995200000,
+        "voteStartedAt": 1640995200000
+      },
+      "roomInfo": {
+        "id": "rapido-equipo-123",
+        "createdAt": 1640995200000,
+        "createdBy": "userId1"
       }
-    },
-    "votes": {
-      "userId1": "5"
-    },
-    "gameState": {
-      "isRevealed": false,
-      "roundId": "round_1640995200000",
-      "createdAt": 1640995200000
     }
   }
 }
@@ -112,5 +108,10 @@ La aplicación creará automáticamente esta estructura en tu Realtime Database:
 
 ### La aplicación no se conecta
 - Verifica que Realtime Database esté habilitado
-- Comprueba que la URL de la base de datos sea correcta
+- Comprueba que la URL de la base de datos sea correcta: `https://planning-poker-v0-default-rtdb.firebaseio.com/`
 - Revisa la consola del navegador para errores específicos
+
+### Error: "Database URL not found"
+- Asegúrate de que la URL de la base de datos esté incluida en la configuración
+- Verifica que la Realtime Database esté habilitada en tu proyecto
+- La URL debe ser exactamente: `https://planning-poker-v0-default-rtdb.firebaseio.com/`

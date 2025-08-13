@@ -3,59 +3,59 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { AlertTriangle, ExternalLink, CheckCircle, Clock } from "lucide-react"
+import { AlertTriangle, ExternalLink, CheckCircle, Database, Clock } from "lucide-react"
 import { useState } from "react"
 
-export function FirebaseSetupGuide() {
+export function DatabaseSetupGuide() {
   const [currentStep, setCurrentStep] = useState(0)
 
   const steps = [
     {
-      title: "1. Habilitar Authentication",
-      description: "Ve a Firebase Console > Authentication > Sign-in method",
-      action: "Habilitar proveedor de Google",
-      link: "https://console.firebase.google.com/project/planning-poker-v0/authentication/providers",
-      completed: false,
-    },
-    {
-      title: "2. Crear Realtime Database",
+      title: "1. Ir a Realtime Database",
       description: "Ve a Firebase Console > Realtime Database",
-      action: "Crear base de datos",
+      action: "Abrir Database",
       link: "https://console.firebase.google.com/project/planning-poker-v0/database",
       completed: false,
     },
     {
-      title: "3. Configurar reglas de seguridad",
-      description: "Configurar reglas para usuarios autenticados",
-      action: "Configurar reglas",
-      link: "https://console.firebase.google.com/project/planning-poker-v0/database/rules",
+      title: "2. Crear Database",
+      description: "Haz clic en 'Create database'",
+      action: "Crear Database",
+      link: "https://console.firebase.google.com/project/planning-poker-v0/database",
       completed: false,
     },
     {
-      title: "4. Añadir dominios autorizados",
-      description: "Añadir v0.dev a dominios autorizados",
-      action: "Configurar dominios",
-      link: "https://console.firebase.google.com/project/planning-poker-v0/authentication/settings",
+      title: "3. Configurar modo",
+      description: "Selecciona 'Start in test mode'",
+      action: "Configurar modo",
+      link: "https://console.firebase.google.com/project/planning-poker-v0/database",
+      completed: false,
+    },
+    {
+      title: "4. Seleccionar región",
+      description: "Elige 'us-central1' (recomendado)",
+      action: "Seleccionar región",
+      link: "https://console.firebase.google.com/project/planning-poker-v0/database",
       completed: false,
     },
   ]
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-red-100 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-orange-100 p-4">
       <Card className="w-full max-w-2xl">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-orange-600">
-            <AlertTriangle className="h-5 w-5" />
-            Configuración de Firebase Requerida
+          <CardTitle className="flex items-center gap-2 text-red-600">
+            <Database className="h-5 w-5" />
+            Realtime Database No Habilitado
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Error de configuración detectado</AlertTitle>
+            <AlertTitle>Error: Service database is not available</AlertTitle>
             <AlertDescription>
-              El proveedor de autenticación de Google no está habilitado en tu proyecto de Firebase. Sigue estos pasos
-              para configurarlo:
+              Realtime Database no está habilitado en tu proyecto de Firebase. Necesitas crearlo para que la aplicación
+              funcione.
             </AlertDescription>
           </Alert>
 
@@ -105,25 +105,39 @@ export function FirebaseSetupGuide() {
           </div>
 
           <div className="bg-blue-50 p-4 rounded-lg">
-            <h4 className="font-medium mb-2">Paso 1 detallado - Habilitar Google Authentication:</h4>
-            <ol className="list-decimal pl-5 space-y-1 text-sm">
-              <li>Haz clic en el botón "Habilitar proveedor de Google" arriba</li>
-              <li>En la página que se abre, haz clic en "Google"</li>
-              <li>Activa el toggle "Enable"</li>
-              <li>Configura un email de soporte (tu email)</li>
-              <li>Haz clic en "Save"</li>
+            <h4 className="font-medium mb-2">📋 Pasos detallados:</h4>
+            <ol className="list-decimal pl-5 space-y-2 text-sm">
+              <li>Haz clic en "Abrir Database" arriba</li>
+              <li>
+                En la página que se abre, haz clic en <strong>"Create database"</strong>
+              </li>
+              <li>
+                Selecciona <strong>"Start in test mode"</strong> (para desarrollo)
+              </li>
+              <li>
+                Elige la región <strong>"us-central1"</strong> (recomendado)
+              </li>
+              <li>
+                Haz clic en <strong>"Enable"</strong>
+              </li>
+              <li>Espera a que se cree la base de datos</li>
               <li>Regresa a esta aplicación y recarga la página</li>
             </ol>
           </div>
 
           <div className="bg-yellow-50 p-4 rounded-lg">
-            <h4 className="font-medium mb-2">Reglas de seguridad para Realtime Database:</h4>
+            <h4 className="font-medium mb-2">🔧 Reglas de seguridad (después de crear):</h4>
+            <p className="text-sm text-yellow-800 mb-2">
+              Una vez creada la base de datos, ve a la pestaña "Rules" y usa estas reglas:
+            </p>
             <pre className="text-xs bg-white p-3 rounded border overflow-x-auto">
               {`{
   "rules": {
-    "room": {
-      ".read": "auth != null",
-      ".write": "auth != null"
+    "rooms": {
+      "$roomId": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
     }
   }
 }`}
@@ -132,10 +146,16 @@ export function FirebaseSetupGuide() {
 
           <Alert>
             <AlertDescription>
-              <strong>Importante:</strong> Después de completar cada paso, recarga esta página para verificar que la
-              configuración sea correcta.
+              <strong>💡 Importante:</strong> Después de crear Realtime Database, recarga esta página. La aplicación
+              detectará automáticamente que está disponible.
             </AlertDescription>
           </Alert>
+
+          <div className="text-center">
+            <Button onClick={() => window.location.reload()} className="w-full" size="lg">
+              Recargar página después de crear Database
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

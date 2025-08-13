@@ -1,151 +1,131 @@
 "use client"
 
-import { useEffect, useMemo } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { useAuth } from "@/contexts/AuthContext"
 import { useRoom } from "@/hooks/useRoom"
-import { ParticipantsList } from "./ParticipantsList"
-import { ParticipantStatistics } from "./ParticipantStatistics"
-import { VoteStatistics } from "./VoteStatistics"
-import { VoteTimeoutIndicator } from "./VoteTimeoutIndicator"
-import { EditNameDialog } from "./EditNameDialog"
-import { LogOut, Users, RotateCcw, Eye, BarChart3, ArrowLeft, Copy, Check, Share2, MoreHorizontal } from "lucide-react"
-import { type VoteValue, VOTE_OPTIONS } from "@/types"
-import { generateShareableUrl } from "@/lib/roomUtils"
-import { useState } from "react"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { ArrowLeft, Users, LogOut, Copy, Check, Share2, Edit2, Save, X, Crown } from "lucide-react"
+import { VotingCard } from "@/components/VotingCard"
+import { ParticipantsList } from "@/components/ParticipantsList"
+import { VoteStatistics } from "@/components/VoteStatistics"
+import { ParticipantStatistics } from "@/components/ParticipantStatistics"
+import { VoteTimeoutIndicator } from "@/components/VoteTimeoutIndicator"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 interface PlanningRoomProps {
   roomId: string
-  onLeaveRoom: (deletedRoomId?: string) => void
-  onLogout?: () => void
+  onLeaveRoom: () => void
 }
 
-export function PlanningRoom({ roomId, onLeaveRoom, onLogout }: PlanningRoomProps) {
+export function PlanningRoom({ roomId, onLeaveRoom }: PlanningRoomProps) {
   const { user, logout } = useAuth()
-  const { room, loading, vote, resetRound, revealVotes, updateName, leaveRoom } = useRoom(roomId)
+  const { room, loading, vote, resetRound, revealVotes, leaveRoom, updateStoryName, kickUser, isRoomCreator } =
+    useRoom(roomId)
   const [copied, setCopied] = useState(false)
-
-  useEffect(() => {
-    // Cleanup when component unmounts
-    return () => {
-      leaveRoom()
-    }
-  }, [leaveRoom])
-
-  // Check if room was deleted (room becomes null after existing)
-  useEffect(() => {
-    if (!loading && room === null) {
-      console.log(`Room ${roomId} no longer exists, redirecting to room selector`)
-      onLeaveRoom(roomId) // Pass the deleted room ID
-    }
-  }, [room, loading, roomId, onLeaveRoom])
-
-  // Memoize computed values to prevent unnecessary re-renders
-  const roomData = useMemo(() => {
-    if (!room) return null
-
-    const participants = room.participants || {}
-    const votes = room.votes || {}
-    const gameState = room.gameState || {
-      isRevealed: false,
-      roundId: `round_${Date.now()}`,
-      createdAt: Date.now(),
-      voteStartedAt: Date.now(),
-    }
-
-    const currentUser = user ? participants[user.uid] : null
-    const participantsList = Object.values(participants)
-    const votedCount = participantsList.filter((p) => p.hasVoted).length
-    const canReveal = votedCount > 0 && votedCount === participantsList.length
-
-    return {
-      participants,
-      votes,
-      gameState,
-      currentUser,
-      participantsList,
-      votedCount,
-      canReveal,
-    }
-  }, [room, user])
-
-  const copyShareableUrl = async () => {
-    const url = generateShareableUrl(roomId)
-
-    try {
-      await navigator.clipboard.writeText(url)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch (err) {
-      console.error("Error copying to clipboard:", err)
-    }
-  }
-
-  const shareRoom = async () => {
-    const url = generateShareableUrl(roomId)
-
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `Planning Poker - Sala ${roomId}`,
-          text: `Únete a mi sesión de Planning Poker`,
-          url: url,
-        })
-      } catch (err) {
-        console.error("Error sharing:", err)
-        copyShareableUrl()
-      }
-    } else {
-      copyShareableUrl()
-    }
-  }
+  const [isEditingStory, setIsEditingStory] = useState(false)
+  const [storyName, setStoryName] = useState("")
 
   const handleLeaveRoom = async () => {
-    await leaveRoom()
-    onLeaveRoom()
+    try {
+      await leaveRoom()
+    } catch (error) {
+      console.error("Error leaving room:", error)
+    } finally {
+      onLeaveRoom()
+    }
   }
 
   const handleLogout = async () => {
     try {
-      await leaveRoom() // Salir de la sala primero
-      if (onLogout) {
-        onLogout() // Limpiar estado en el componente padre
-      }
-      await logout() // Luego hacer logout
+      await leaveRoom()
+      await logout()
     } catch (error) {
       console.error("Error during logout:", error)
-      // Forzar logout incluso si hay error
-      if (onLogout) {
-        onLogout()
-      }
       await logout()
+    }
+  }
+
+  const copyRoomUrl = async () => {
+    try {
+      const url = `${window.location.origin}/room/${roomId}`
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error("Failed to copy:", err)
+    }
+  }
+
+  const shareRoom = async () => {
+    const url = `${window.location.origin}/room/${roomId}`
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "Planning Poker - Únete a mi sala",
+          text: `Únete a mi sala de Planning Poker: ${roomId}`,
+          url: url,
+        })
+      } catch (err) {
+        console.log("Error sharing:", err)
+        // Fallback to copy
+        copyRoomUrl()
+      }
+    } else {
+      // Fallback to copy
+      copyRoomUrl()
+    }
+  }
+
+  const handleSaveStoryName = async () => {
+    if (storyName.trim()) {
+      await updateStoryName(storyName.trim())
+      setIsEditingStory(false)
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setStoryName(room?.storyName || "")
+    setIsEditingStory(false)
+  }
+
+  const startEditingStory = () => {
+    if (!isRoomCreator) return
+    setStoryName(room?.storyName || "")
+    setIsEditingStory(true)
+  }
+
+  const handleKickUser = async (userId: string) => {
+    if (kickUser) {
+      await kickUser(userId)
     }
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p>Cargando sala {roomId}...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-lg font-medium text-gray-700">Cargando sala {roomId}...</p>
+          <p className="text-sm text-gray-500 mt-1">Conectando con Firebase...</p>
         </div>
       </div>
     )
   }
 
-  if (!room || !roomData) {
+  if (!room) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <p>La sala {roomId} no existe o fue eliminada</p>
-          <Button onClick={() => onLeaveRoom()} className="mt-4">
+          <div className="p-4 bg-red-100 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
+            <X className="h-10 w-10 text-red-600" />
+          </div>
+          <p className="text-lg font-medium text-gray-700">Error cargando la sala {roomId}</p>
+          <p className="text-sm text-gray-500 mt-1">La sala no existe o no tienes permisos para acceder</p>
+          <Button onClick={onLeaveRoom} className="mt-4">
             Volver al selector de salas
           </Button>
         </div>
@@ -153,251 +133,219 @@ export function PlanningRoom({ roomId, onLeaveRoom, onLogout }: PlanningRoomProp
     )
   }
 
-  const { participants, votes, gameState, currentUser, participantsList, votedCount, canReveal } = roomData
+  const participants = Object.values(room.participants || {})
+  const currentUser = user ? room.participants?.[user.uid] : null
+  const userVote = user ? room.votes?.[user.uid] : null
+  const hasVoted = Boolean(currentUser?.hasVoted)
+  const isRevealed = Boolean(room.gameState?.isRevealed)
+  const allParticipantsCount = participants.length
+  const votedParticipantsCount = participants.filter((p) => p.hasVoted).length
 
-  const handleVote = (value: VoteValue) => {
-    vote(value)
-  }
+  // For "can reveal" logic, exclude creator from required votes if they haven't voted
+  const nonCreatorParticipants = participants.filter((p) => p.id !== room.gameState?.createdBy)
+  const nonCreatorVotedCount = nonCreatorParticipants.filter((p) => p.hasVoted).length
+  const creatorHasVoted = room.gameState?.createdBy
+    ? Boolean(room.participants?.[room.gameState.createdBy]?.hasVoted)
+    : false
+
+  // Can reveal if all non-creators have voted, OR if all participants (including creator) have voted
+  const canReveal =
+    (nonCreatorParticipants.length > 0 && nonCreatorVotedCount === nonCreatorParticipants.length) ||
+    (votedParticipantsCount > 0 && votedParticipantsCount === allParticipantsCount)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Improved Header */}
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
       <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Top row - Navigation and User */}
-          <div className="flex justify-between items-center h-14 border-b border-gray-100">
-            <div className="flex items-center gap-3">
-              <Button onClick={handleLeaveRoom} variant="ghost" size="sm" className="flex items-center gap-2">
-                <ArrowLeft className="h-4 w-4" />
-                <span className="hidden sm:inline">Volver</span>
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              <Button onClick={handleLeaveRoom} variant="ghost" size="sm" className="hover:bg-gray-100">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Volver
               </Button>
-              <div className="h-6 w-px bg-gray-300"></div>
-              <h1 className="text-lg font-bold text-gray-900">Planning Poker</h1>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-xl font-bold text-blue-600">Planning Poker</h1>
+                  {isRoomCreator && (
+                    <div className="flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold border border-blue-200">
+                      <Crown className="h-3 w-3" />
+                      Creador
+                    </div>
+                  )}
+                </div>
+                <p className="text-sm text-gray-600 font-medium">Sala: {roomId}</p>
+              </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              {currentUser && (
-                <div className="flex items-center gap-2">
-                  <div className="text-right hidden sm:block">
-                    <div className="text-sm font-medium text-gray-900">Hola, {currentUser.name}</div>
-                    <div className="text-xs text-gray-500">Participante activo</div>
-                  </div>
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    <span className="text-sm font-medium text-primary">{currentUser.name.charAt(0).toUpperCase()}</span>
-                  </div>
-                </div>
-              )}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 text-sm text-gray-600 bg-gray-100 px-3 py-2 rounded-lg">
+                <Users className="h-4 w-4" />
+                <span className="font-medium">{participants.length} participantes</span>
+              </div>
 
+              {/* Share dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm">
-                    <MoreHorizontal className="h-4 w-4" />
+                  <Button variant="outline" size="sm" className="bg-white hover:bg-gray-50">
+                    <Share2 className="h-4 w-4 mr-2" />
+                    Compartir
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  {currentUser && (
-                    <>
-                      <EditNameDialog currentName={currentUser.name} onUpdateName={updateName} />
-                      <DropdownMenuSeparator />
-                    </>
-                  )}
-                  <DropdownMenuItem onClick={handleLogout} className="text-red-600">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Cerrar Sesión
+                <DropdownMenuContent className="bg-white">
+                  <DropdownMenuItem onClick={copyRoomUrl}>
+                    {copied ? (
+                      <>
+                        <Check className="mr-2 h-4 w-4 text-green-600" />
+                        ¡Copiado!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="mr-2 h-4 w-4" />
+                        Copiar enlace
+                      </>
+                    )}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={shareRoom}>
+                    <Share2 className="mr-2 h-4 w-4" />
+                    Compartir
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            </div>
-          </div>
 
-          {/* Bottom row - Room info and Actions */}
-          <div className="flex justify-between items-center h-14">
-            <div className="flex items-center gap-4">
-              {/* Room Info */}
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-lg">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="font-mono text-sm font-medium">{roomId}</span>
-                </div>
-
-                <div className="flex items-center gap-1.5 text-sm text-gray-600">
-                  <Users className="h-4 w-4" />
-                  <span className="font-medium">{participantsList.length}</span>
-                  <span className="hidden sm:inline">participante{participantsList.length !== 1 ? "s" : ""}</span>
-                </div>
-
-                {participantsList.length === 1 && (
-                  <div className="hidden md:flex items-center gap-1.5 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
-                    <div className="w-1.5 h-1.5 bg-orange-500 rounded-full"></div>
-                    Sala se eliminará si queda vacía
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex items-center gap-2">
-              {/* Share Actions */}
-              <div className="hidden sm:flex items-center gap-1">
-                <Button
-                  onClick={copyShareableUrl}
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2 bg-transparent"
-                >
-                  {copied ? (
-                    <>
-                      <Check className="h-4 w-4" />
-                      <span className="hidden md:inline">Copiado</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-4 w-4" />
-                      <span className="hidden md:inline">Copiar</span>
-                    </>
-                  )}
-                </Button>
-
-                <Button
-                  onClick={shareRoom}
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2 bg-transparent"
-                >
-                  <Share2 className="h-4 w-4" />
-                  <span className="hidden md:inline">Compartir</span>
-                </Button>
-              </div>
-
-              {/* Game Actions */}
-              <div className="flex items-center gap-1">
-                {canReveal && !gameState.isRevealed && (
-                  <Button onClick={revealVotes} size="sm" className="flex items-center gap-2">
-                    <Eye className="h-4 w-4" />
-                    <span className="hidden sm:inline">Revelar</span>
-                  </Button>
-                )}
-
-                <Button
-                  onClick={resetRound}
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2 bg-transparent"
-                >
-                  <RotateCcw className="h-4 w-4" />
-                  <span className="hidden sm:inline">Reset</span>
-                </Button>
-              </div>
-
-              {/* Mobile Share Menu */}
-              <div className="sm:hidden">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="bg-transparent">
-                      <Share2 className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={copyShareableUrl}>
-                      {copied ? (
-                        <>
-                          <Check className="mr-2 h-4 w-4" />
-                          Copiado
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="mr-2 h-4 w-4" />
-                          Copiar URL
-                        </>
-                      )}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={shareRoom}>
-                      <Share2 className="mr-2 h-4 w-4" />
-                      Compartir
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+              <Button onClick={handleLogout} variant="outline" size="sm" className="bg-white hover:bg-gray-50">
+                <LogOut className="h-4 w-4 mr-2" />
+                Cerrar sesión
+              </Button>
             </div>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Vote Timeout Indicator */}
-        <VoteTimeoutIndicator
-          voteStartedAt={gameState.voteStartedAt}
-          hasVoted={currentUser?.hasVoted || false}
-          isRevealed={gameState.isRevealed}
-        />
+      <main className="max-w-7xl mx-auto p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Voting */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Story Name Section */}
+            <Card className="shadow-sm border bg-white">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center justify-between text-gray-700">
+                  <div className="flex items-center gap-2">
+                    <Edit2 className="h-5 w-5 text-blue-600" />
+                    Historia de Usuario
+                  </div>
+                  {!isEditingStory && isRoomCreator && (
+                    <Button onClick={startEditingStory} variant="ghost" size="sm" className="hover:bg-blue-50">
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                  {!isRoomCreator && (
+                    <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                      Solo el creador puede editar
+                    </div>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isEditingStory ? (
+                  <div className="space-y-3">
+                    <div>
+                      <Label htmlFor="storyName" className="text-gray-700 font-medium">
+                        Nombre de la Historia
+                      </Label>
+                      <Input
+                        id="storyName"
+                        value={storyName}
+                        onChange={(e) => setStoryName(e.target.value)}
+                        placeholder="Ej: Como usuario, quiero poder..."
+                        maxLength={200}
+                        className="mt-1 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleSaveStoryName()
+                          if (e.key === "Escape") handleCancelEdit()
+                        }}
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button onClick={handleSaveStoryName} size="sm" className="bg-blue-600 hover:bg-blue-700">
+                        <Save className="h-4 w-4 mr-2" />
+                        Guardar
+                      </Button>
+                      <Button
+                        onClick={handleCancelEdit}
+                        variant="outline"
+                        size="sm"
+                        className="bg-white hover:bg-gray-50"
+                      >
+                        <X className="h-4 w-4 mr-2" />
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="min-h-[60px] flex items-center">
+                    {room.storyName ? (
+                      <p className="text-lg text-gray-800 leading-relaxed">{room.storyName}</p>
+                    ) : (
+                      <p className="text-gray-500 italic">
+                        {isRoomCreator
+                          ? "Haz clic en el ícono de editar para añadir una Historia de Usuario"
+                          : "El creador de la sala puede añadir una Historia de Usuario"}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
-        {/* Voting Section */}
-        {!currentUser?.hasVoted && !gameState.isRevealed && (
-          <div className="mb-8">
-            <div className="bg-white rounded-lg shadow-sm border p-6">
-              <h2 className="text-lg font-semibold mb-4 text-center">Selecciona tu voto</h2>
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 max-w-2xl mx-auto">
-                {VOTE_OPTIONS.map((option) => (
-                  <Button
-                    key={option}
-                    onClick={() => handleVote(option)}
-                    variant="outline"
-                    size="lg"
-                    className="h-16 text-2xl font-mono hover:bg-primary hover:text-primary-foreground transition-colors"
-                  >
-                    {option}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
+            {/* Vote Timeout Indicator */}
+            <VoteTimeoutIndicator
+              voteStartedAt={room.gameState?.voteStartedAt}
+              hasVoted={hasVoted}
+              isRevealed={isRevealed}
+              isCreator={isRoomCreator}
+            />
 
-        {/* User's vote display */}
-        {currentUser?.hasVoted && currentUser && votes[currentUser.id] && !gameState.isRevealed && (
-          <div className="mb-8">
-            <div className="bg-white rounded-lg shadow-sm border p-6">
-              <div className="text-center">
-                <h2 className="text-lg font-semibold mb-2">Tu voto</h2>
-                <div className="inline-block p-4 rounded-lg border-2 border-primary/20 bg-primary/5">
-                  <div className="text-4xl font-bold font-mono text-primary">{votes[currentUser.id]}</div>
-                </div>
-                <p className="text-sm text-muted-foreground mt-2">
-                  {canReveal
-                    ? "Todos han votado. Haz clic en 'Revelar' para ver los resultados."
-                    : "Esperando a que todos los participantes voten..."}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
+            {/* Voting Card */}
+            <VotingCard
+              onVote={vote}
+              onReset={resetRound}
+              onReveal={revealVotes}
+              userVote={userVote}
+              hasVoted={hasVoted}
+              isRevealed={isRevealed}
+              allParticipantsCount={allParticipantsCount}
+              votedParticipantsCount={votedParticipantsCount}
+              canReveal={canReveal}
+              isRoomCreator={isRoomCreator}
+            />
 
-        {/* Three main components */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* 1. Estado de la Votación */}
-          <div>
-            <ParticipantStatistics participants={participants} votes={votes} isRevealed={gameState.isRevealed} />
-          </div>
-
-          {/* 2. Lista de Participantes */}
-          <div>
-            <ParticipantsList participants={participants} votes={votes} isRevealed={gameState.isRevealed} />
-          </div>
-
-          {/* 3. Estadísticas de Votación (solo cuando se revelan) */}
-          <div>
-            {gameState.isRevealed && Object.keys(votes).length > 0 ? (
-              <VoteStatistics votes={votes} participants={participants} />
-            ) : (
-              <div className="bg-white rounded-lg shadow-sm border p-6">
-                <div className="text-center text-muted-foreground">
-                  <BarChart3 className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <h3 className="font-medium mb-2">Estadísticas de Votación</h3>
-                  <p className="text-sm">Las estadísticas se mostrarán cuando se revelen los votos</p>
-                </div>
-              </div>
+            {/* Vote Statistics - Only show when revealed */}
+            {isRevealed && Object.keys(room.votes || {}).length > 0 && (
+              <VoteStatistics votes={room.votes || {}} participants={room.participants || {}} />
             )}
+          </div>
+
+          {/* Right Column - Participants and Stats */}
+          <div className="space-y-6">
+            {/* Participant Statistics */}
+            <ParticipantStatistics
+              participants={room.participants || {}}
+              votes={room.votes || {}}
+              isRevealed={isRevealed}
+            />
+
+            {/* Participants List */}
+            <ParticipantsList
+              participants={room.participants || {}}
+              votes={room.votes || {}}
+              isRevealed={isRevealed}
+              isRoomCreator={isRoomCreator}
+              currentUserId={user?.uid}
+              creatorId={room.gameState?.createdBy}
+              onKickUser={handleKickUser}
+            />
           </div>
         </div>
       </main>

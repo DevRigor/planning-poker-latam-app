@@ -1,53 +1,33 @@
-import { initializeApp, getApps, type FirebaseApp } from "firebase/app"
-import { getAuth, GoogleAuthProvider, type Auth } from "firebase/auth"
-import { getDatabase, type Database } from "firebase/database"
+// Configuración ultra-básica de Firebase
+import { initializeApp, getApps } from "firebase/app"
+import { getAuth, GoogleAuthProvider } from "firebase/auth"
+import { getDatabase } from "firebase/database"
 
-// Tu configuración de Firebase
 const firebaseConfig = {
-  apiKey: "AIzaSyDJQ_9LmKTolSUMHa6D8lli-lcwWnGZ1tU",
-  authDomain: "planning-poker-latam-app.firebaseapp.com",
-  databaseURL: "https://planning-poker-latam-app-default-rtdb.firebaseio.com",
-  projectId: "planning-poker-latam-app",
-  storageBucket: "planning-poker-latam-app.firebasestorage.app",
-  messagingSenderId: "312209969575",
-  appId: "1:312209969575:web:2186f1e5688e042f9b2682",
-  measurementId: "G-S73G95NSX4",
+  apiKey: "AIzaSyDXtmcsxMXxEFKD5D79Oevf5de4tQKoUY4",
+  authDomain: "planning-poker-v0.firebaseapp.com",
+  databaseURL: "https://planning-poker-v0-default-rtdb.firebaseio.com",
+  projectId: "planning-poker-v0",
+  storageBucket: "planning-poker-v0.firebasestorage.app",
+  messagingSenderId: "146704816058",
+  appId: "1:146704816058:web:f078fa4b0e4af8cbff6f83",
 }
-
-// Log configuration status
-console.log("Firebase configuration:", {
-  projectId: firebaseConfig.projectId,
-  authDomain: firebaseConfig.authDomain,
-})
 
 // Initialize Firebase
-let app: FirebaseApp
-let auth: Auth
-let database: Database
-let googleProvider: GoogleAuthProvider
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0]
 
-try {
-  // Initialize Firebase only if it hasn't been initialized already
-  app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0]
+// Initialize Firebase Authentication
+export const auth = getAuth(app)
 
-  // Initialize Firebase Authentication
-  auth = getAuth(app)
+// Initialize Google Auth Provider
+export const googleProvider = new GoogleAuthProvider()
+googleProvider.setCustomParameters({
+  prompt: "select_account",
+})
 
-  // Initialize Google Auth Provider
-  googleProvider = new GoogleAuthProvider()
-  googleProvider.setCustomParameters({
-    prompt: "select_account",
-  })
+// Initialize Realtime Database
+export const database = getDatabase(app)
 
-  // Initialize Realtime Database
-  database = getDatabase(app)
+console.log("Firebase initialized successfully")
 
-  console.log("Firebase initialized successfully with your configuration")
-} catch (error) {
-  console.error("Firebase initialization error:", error)
-  throw new Error(`Firebase initialization failed: ${error}`)
-}
-
-// Export Firebase instances
-export { auth, googleProvider, database }
 export default app

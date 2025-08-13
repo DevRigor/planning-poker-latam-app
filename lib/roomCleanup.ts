@@ -1,28 +1,28 @@
-import { ref, remove, get } from "firebase/database"
-import { database, auth } from "@/lib/firebase"
+import { auth, database } from "@/lib/firebase"
+import { ref, get, remove } from "firebase/database"
 
-// Delay antes de eliminar una sala vacía (para evitar eliminaciones accidentales por desconexiones temporales)
+// Retraso antes de eliminar una sala vacía (para evitar eliminaciones accidentales por desconexiones temporales)
 const EMPTY_ROOM_CLEANUP_DELAY = 30000 // 30 segundos
 
 // Map para trackear timeouts de limpieza por sala
 const cleanupTimeouts = new Map<string, NodeJS.Timeout>()
 
 export async function scheduleRoomCleanup(roomId: string) {
-  console.log(`Scheduling cleanup check for room ${roomId} in ${EMPTY_ROOM_CLEANUP_DELAY}ms`)
+  console.log(`Programando verificación de limpieza para sala ${roomId} en ${EMPTY_ROOM_CLEANUP_DELAY}ms`)
 
-  // Cancelar cualquier cleanup previo para esta sala
+  // Cancelar cualquier limpieza previa para esta sala
   const existingTimeout = cleanupTimeouts.get(roomId)
   if (existingTimeout) {
     clearTimeout(existingTimeout)
     cleanupTimeouts.delete(roomId)
   }
 
-  // Programar nuevo cleanup
+  // Programar nueva limpieza
   const timeoutId = setTimeout(async () => {
     try {
       await checkAndCleanupRoom(roomId)
     } catch (error) {
-      console.error(`Error during scheduled cleanup for room ${roomId}:`, error)
+      console.error(`Error durante limpieza programada para sala ${roomId}:`, error)
     } finally {
       cleanupTimeouts.delete(roomId)
     }
@@ -34,7 +34,7 @@ export async function scheduleRoomCleanup(roomId: string) {
 export function cancelRoomCleanup(roomId: string) {
   const existingTimeout = cleanupTimeouts.get(roomId)
   if (existingTimeout) {
-    console.log(`Canceling scheduled cleanup for room ${roomId}`)
+    console.log(`Cancelando limpieza programada para sala ${roomId}`)
     clearTimeout(existingTimeout)
     cleanupTimeouts.delete(roomId)
   }
@@ -42,31 +42,37 @@ export function cancelRoomCleanup(roomId: string) {
 
 async function checkAndCleanupRoom(roomId: string) {
   try {
-    console.log(`Checking if room ${roomId} should be cleaned up`)
+    console.log(`Verificando si sala ${roomId} debe ser limpiada`)
 
-    // Check if user is still authenticated
+    // Verificar que estamos en el cliente
+    if (typeof window === "undefined") {
+      console.log(`Cleanup omitido para sala ${roomId}: ejecutándose en servidor`)
+      return
+    }
+
+    // Verificar si el usuario sigue autenticado
     const currentUser = auth.currentUser
     if (!currentUser) {
-      console.log(`Cannot cleanup room ${roomId}: User not authenticated`)
+      console.log(`No se puede limpiar sala ${roomId}: Usuario no autenticado`)
       return
     }
 
     const roomRef = ref(database, `rooms/${roomId}`)
 
-    // Try to read the room data
+    // Intentar leer los datos de la sala
     let snapshot
     try {
       snapshot = await get(roomRef)
     } catch (error: any) {
       if (error.code === "PERMISSION_DENIED") {
-        console.log(`Permission denied reading room ${roomId}, skipping cleanup`)
+        console.log(`Permiso denegado leyendo sala ${roomId}, omitiendo limpieza`)
         return
       }
       throw error
     }
 
     if (!snapshot.exists()) {
-      console.log(`Room ${roomId} already doesn't exist`)
+      console.log(`Sala ${roomId} ya no existe`)
       return
     }
 
@@ -74,83 +80,95 @@ async function checkAndCleanupRoom(roomId: string) {
     const participants = roomData?.participants || {}
     const participantCount = Object.keys(participants).length
 
-    console.log(`Room ${roomId} has ${participantCount} participants`)
+    console.log(`Sala ${roomId} tiene ${participantCount} participantes`)
 
     if (participantCount === 0) {
-      console.log(`Room ${roomId} is empty, attempting to delete...`)
+      console.log(`Sala ${roomId} está vacía, intentando eliminar...`)
 
       try {
         await remove(roomRef)
-        console.log(`✅ Room ${roomId} has been deleted successfully`)
+        console.log(`✅ Sala ${roomId} ha sido eliminada exitosamente`)
       } catch (error: any) {
         if (error.code === "PERMISSION_DENIED") {
-          console.log(`Permission denied deleting room ${roomId}, cleanup skipped`)
+          console.log(`Permiso denegado eliminando sala ${roomId}, limpieza omitida`)
           return
         }
         throw error
       }
     } else {
-      console.log(`Room ${roomId} is not empty, keeping it`)
+      console.log(`Sala ${roomId} no está vacía, manteniéndola`)
     }
   } catch (error: any) {
-    // Handle specific Firebase errors gracefully
+    // Manejar errores específicos de Firebase con gracia
     if (error.code === "PERMISSION_DENIED") {
-      console.log(`Permission denied for room ${roomId} cleanup, this is normal if user logged out`)
+      console.log(`Permiso denegado para limpieza de sala ${roomId}, esto es normal si el usuario cerró sesión`)
     } else if (error.code === "NETWORK_ERROR") {
-      console.log(`Network error during room ${roomId} cleanup, will retry later`)
+      console.log(`Error de red durante limpieza de sala ${roomId}, se reintentará más tarde`)
     } else {
-      console.error(`Unexpected error checking/cleaning room ${roomId}:`, error)
+      console.error(`Error inesperado verificando/limpiando sala ${roomId}:`, error)
     }
   }
 }
 
-// Función para limpiar inmediatamente (sin delay) - con mejor manejo de errores
+// Función para limpiar inmediatamente (sin retraso) - con mejor manejo de errores
 export async function immediateRoomCleanup(roomId: string) {
-  console.log(`Performing immediate cleanup check for room ${roomId}`)
+  console.log(`Realizando verificación de limpieza inmediata para sala ${roomId}`)
 
-  // Cancelar cualquier cleanup programado
+  // Cancelar cualquier limpieza programada
   cancelRoomCleanup(roomId)
 
-  // Solo ejecutar si el usuario está autenticado
-  const currentUser = auth.currentUser
-  if (!currentUser) {
-    console.log(`Skipping immediate cleanup for room ${roomId}: User not authenticated`)
-    return
-  }
-
-  // Ejecutar limpieza inmediata con manejo de errores
   try {
+    // Verificar que estamos en el cliente
+    if (typeof window === "undefined") {
+      console.log(`Cleanup inmediato omitido para sala ${roomId}: ejecutándose en servidor`)
+      return
+    }
+
+    // Solo ejecutar si el usuario está autenticado
+    const currentUser = auth.currentUser
+    if (!currentUser) {
+      console.log(`Omitiendo limpieza inmediata para sala ${roomId}: Usuario no autenticado`)
+      return
+    }
+
+    // Ejecutar limpieza inmediata con manejo de errores
     await checkAndCleanupRoom(roomId)
   } catch (error) {
-    console.log(`Immediate cleanup failed for room ${roomId}, this is normal during logout`)
+    console.log(`Limpieza inmediata falló para sala ${roomId}, esto es normal durante logout`)
   }
 }
 
-// Función para limpiar todos los timeouts (útil para cleanup general)
+// Función para limpiar todos los timeouts (útil para limpieza general)
 export function cleanupAllScheduledCleanups() {
-  console.log(`Cleaning up ${cleanupTimeouts.size} scheduled room cleanups`)
+  console.log(`Limpiando ${cleanupTimeouts.size} limpiezas de sala programadas`)
   cleanupTimeouts.forEach((timeout) => clearTimeout(timeout))
   cleanupTimeouts.clear()
 }
 
-// Nueva función para cleanup "silencioso" que no requiere permisos
+// Nueva función para limpieza "silenciosa" que no requiere permisos
 export function schedulePassiveRoomCleanup(roomId: string) {
-  console.log(`Scheduling passive cleanup for room ${roomId} (will only run if user remains authenticated)`)
+  console.log(`Programando limpieza pasiva para sala ${roomId} (solo se ejecutará si el usuario permanece autenticado)`)
 
-  // Cancelar cualquier cleanup previo
+  // Cancelar cualquier limpieza previa
   cancelRoomCleanup(roomId)
 
-  // Programar cleanup que solo se ejecuta si hay autenticación
+  // Programar limpieza que solo se ejecuta si hay autenticación
   const timeoutId = setTimeout(async () => {
     try {
-      // Solo intentar cleanup si el usuario sigue autenticado
+      // Verificar que estamos en el cliente
+      if (typeof window === "undefined") {
+        console.log(`Cleanup pasivo omitido para sala ${roomId}: ejecutándose en servidor`)
+        return
+      }
+
+      // Solo intentar limpieza si el usuario sigue autenticado
       if (auth.currentUser) {
         await checkAndCleanupRoom(roomId)
       } else {
-        console.log(`Passive cleanup skipped for room ${roomId}: User no longer authenticated`)
+        console.log(`Limpieza pasiva omitida para sala ${roomId}: Usuario ya no autenticado`)
       }
     } catch (error) {
-      console.log(`Passive cleanup failed for room ${roomId}, this is expected during logout`)
+      console.log(`Limpieza pasiva falló para sala ${roomId}, esto se espera durante logout`)
     } finally {
       cleanupTimeouts.delete(roomId)
     }

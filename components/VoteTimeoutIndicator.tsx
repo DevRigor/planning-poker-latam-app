@@ -10,14 +10,21 @@ interface VoteTimeoutIndicatorProps {
   voteStartedAt: number | undefined
   hasVoted: boolean
   isRevealed: boolean
+  isCreator?: boolean
 }
 
-export function VoteTimeoutIndicator({ voteStartedAt, hasVoted, isRevealed }: VoteTimeoutIndicatorProps) {
+export function VoteTimeoutIndicator({
+  voteStartedAt,
+  hasVoted,
+  isRevealed,
+  isCreator = false,
+}: VoteTimeoutIndicatorProps) {
   const [timeRemaining, setTimeRemaining] = useState<number>(0)
   const [isExpired, setIsExpired] = useState(false)
 
   useEffect(() => {
-    if (!voteStartedAt || hasVoted || isRevealed) {
+    // Don't show timeout for creator, voted users, or when revealed
+    if (!voteStartedAt || hasVoted || isRevealed || isCreator) {
       setTimeRemaining(0)
       setIsExpired(false)
       return
@@ -39,9 +46,10 @@ export function VoteTimeoutIndicator({ voteStartedAt, hasVoted, isRevealed }: Vo
     const interval = setInterval(updateTimer, 1000)
 
     return () => clearInterval(interval)
-  }, [voteStartedAt, hasVoted, isRevealed])
+  }, [voteStartedAt, hasVoted, isRevealed, isCreator])
 
-  if (!voteStartedAt || hasVoted || isRevealed || timeRemaining === 0) {
+  // Don't show for creators or when no time remaining
+  if (!voteStartedAt || hasVoted || isRevealed || timeRemaining === 0 || isCreator) {
     return null
   }
 
@@ -53,7 +61,16 @@ export function VoteTimeoutIndicator({ voteStartedAt, hasVoted, isRevealed }: Vo
   const isCritical = timeRemaining < 30000 // Less than 30 seconds
 
   return (
-    <Alert variant={isCritical ? "destructive" : isUrgent ? "warning" : "default"} className="mb-4">
+    <Alert
+      variant={isCritical ? "destructive" : isUrgent ? "warning" : "default"}
+      className={`mb-4 shadow-sm border ${
+        isCritical
+          ? "bg-red-50 border-red-200"
+          : isUrgent
+            ? "bg-yellow-50 border-yellow-200"
+            : "bg-blue-50 border-blue-200"
+      }`}
+    >
       <div className="flex items-center gap-2">
         {isCritical ? (
           <LogOut className="h-4 w-4" />
@@ -64,16 +81,16 @@ export function VoteTimeoutIndicator({ voteStartedAt, hasVoted, isRevealed }: Vo
         )}
         <div className="flex-1">
           <AlertDescription>
-            <div className="flex items-center justify-between mb-2">
-              <span className="font-medium">
+            <div className="flex items-center justify-between mb-3">
+              <span className="font-semibold text-lg">
                 {isCritical ? "¡Serás desconectado!" : isUrgent ? "¡Vota pronto!" : "Tiempo para votar"}
               </span>
-              <span className="font-mono text-sm">
+              <span className="font-mono text-lg font-bold">
                 {minutes}:{seconds.toString().padStart(2, "0")}
               </span>
             </div>
-            <Progress value={progress} className="h-2" />
-            <div className="text-xs mt-1 opacity-75">
+            <Progress value={progress} className="h-3 mb-2" />
+            <div className="text-sm opacity-90">
               {isCritical
                 ? "Tu sesión se cerrará automáticamente si no votas"
                 : isUrgent

@@ -6,39 +6,35 @@ import { database } from "@/lib/firebase"
 import { VOTE_TIMEOUT_MS } from "@/types"
 import type { Room } from "@/types"
 import { useAuth } from "@/contexts/AuthContext"
+import { useRouter } from "next/navigation"
 
 export function useVoteTimeout(room: Room | null, currentUserId: string | null) {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const checkIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const { logout } = useAuth()
+  const router = useRouter()
 
   useEffect(() => {
-    // TEMPORALMENTE DESHABILITADO para evitar conflictos
-    console.log("Vote timeout hook temporarily disabled")
-    return
+    // Clear any existing timeouts
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
+      timeoutRef.current = null
+    }
 
     if (!room || !currentUserId) {
-      // Clear any existing timeouts
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current)
-        timeoutRef.current = null
-      }
-      if (checkIntervalRef.current) {
-        clearInterval(checkIntervalRef.current)
-        checkIntervalRef.current = null
-      }
       return
     }
 
     const gameState = room.gameState
     const currentUser = room.participants[currentUserId]
+    const isCreator = gameState.createdBy === currentUserId
 
     // Only start timeout if:
     // 1. Game is not revealed
     // 2. User hasn't voted
     // 3. There's a vote start time
     // 4. User exists in participants
-    if (!gameState.isRevealed && currentUser && !currentUser.hasVoted && gameState.voteStartedAt) {
+    // 5. User is NOT the creator (creator can choose not to vote)
+    if (!gameState.isRevealed && currentUser && !currentUser.hasVoted && gameState.voteStartedAt && !isCreator) {
       const timeElapsed = Date.now() - gameState.voteStartedAt
       const timeRemaining = VOTE_TIMEOUT_MS - timeElapsed
 
@@ -62,12 +58,8 @@ export function useVoteTimeout(room: Room | null, currentUserId: string | null) 
         clearTimeout(timeoutRef.current)
         timeoutRef.current = null
       }
-      if (checkIntervalRef.current) {
-        clearInterval(checkIntervalRef.current)
-        checkIntervalRef.current = null
-      }
     }
-  }, [room, currentUserId, logout])
+  }, [room, currentUserId, logout, router])
 
   const logoutUserDueToTimeout = async (userId: string, userName: string) => {
     try {
@@ -83,8 +75,9 @@ export function useVoteTimeout(room: Room | null, currentUserId: string | null) 
         console.log("Stored timeout information in localStorage with timestamp:", Date.now())
       }
 
-      // Then logout the user
+      // Then logout the user and redirect to home
       await logout()
+      router.push("/")
     } catch (error) {
       console.error(`Error logging out user ${userId} due to timeout:`, error)
     }
@@ -94,8 +87,16 @@ export function useVoteTimeout(room: Room | null, currentUserId: string | null) 
     try {
       console.log(`Removing user ${userId} from room due to timeout`)
 
-      const participantRef = ref(database, `room/participants/${userId}`)
-      const voteRef = ref(database, `room/votes/${userId}`)
+      // Get current room ID from URL or room data
+      const roomId = room?.gameState ? (Object.keys(room.participants).length > 0 ? "current-room" : null) : null
+
+      if (!roomId) {
+        console.error("Could not determine room ID for cleanup")
+        return
+      }
+
+      const participantRef = ref(database, `rooms/${roomId}/participants/${userId}`)
+      const voteRef = ref(database, `rooms/${roomId}/votes/${userId}`)
 
       await Promise.allSettled([remove(participantRef), remove(voteRef)])
 

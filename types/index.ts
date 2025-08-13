@@ -20,6 +20,7 @@ export interface Room {
   participants: Record<string, Participant>
   votes: Record<string, string>
   gameState: GameState
+  storyName?: string // Nombre de la Historia de Usuario
   roomInfo?: {
     id: string
     name?: string
