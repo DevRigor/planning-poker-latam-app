@@ -4,13 +4,14 @@ import { getAuth, GoogleAuthProvider } from "firebase/auth"
 import { getDatabase } from "firebase/database"
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDXtmcsxMXxEFKD5D79Oevf5de4tQKoUY4",
-  authDomain: "planning-poker-v0.firebaseapp.com",
-  databaseURL: "https://planning-poker-v0-default-rtdb.firebaseio.com",
-  projectId: "planning-poker-v0",
-  storageBucket: "planning-poker-v0.firebasestorage.app",
-  messagingSenderId: "146704816058",
-  appId: "1:146704816058:web:f078fa4b0e4af8cbff6f83",
+  apiKey: "AIzaSyDJQ_9LmKTolSUMHa6D8lli-lcwWnGZ1tU",
+  authDomain: "planning-poker-latam-app.firebaseapp.com",
+  databaseURL: "https://planning-poker-latam-app-default-rtdb.firebaseio.com",
+  projectId: "planning-poker-latam-app",
+  storageBucket: "planning-poker-latam-app.firebasestorage.app",
+  messagingSenderId: "312209969575",
+  appId: "1:312209969575:web:2186f1e5688e042f9b2682",
+  measurementId: "G-S73G95NSX4",
 }
 
 // Initialize Firebase
