@@ -29,9 +29,9 @@ export interface Room {
   }
 }
 
-export type VoteValue = "1" | "2" | "3" | "5" | "8" | "☕"
+export type VoteValue = "0.5" | "1" | "2" | "3" | "5" | "8" | "☕"
 
-export const VOTE_OPTIONS: VoteValue[] = ["1", "2", "3", "5", "8", "☕"]
+export const VOTE_OPTIONS: VoteValue[] = ["0.5", "1", "2", "3", "5", "8", "☕"]
 
 // Timeout configuration
 export const VOTE_TIMEOUT_MS = 5 * 60 * 1000 // 5 minutos

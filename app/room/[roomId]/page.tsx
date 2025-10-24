@@ -1,5 +1,6 @@
 "use client"
 
+import { use } from "react"
 import { useAuth } from "@/contexts/AuthContext"
 import { LoginCard } from "@/components/LoginCard"
 import { PlanningRoom } from "@/components/PlanningRoom"
@@ -7,9 +8,9 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
 interface RoomPageProps {
-  params: {
+  params: Promise<{
     roomId: string
-  }
+  }>
 }
 
 export default function RoomPage({ params }: RoomPageProps) {
@@ -17,12 +18,15 @@ export default function RoomPage({ params }: RoomPageProps) {
   const router = useRouter()
   const [roomId, setRoomId] = useState<string>("")
 
-  // Extract roomId from params
+  // Unwrap params promise using React.use()
+  const resolvedParams = use(params)
+
+  // Extract roomId from resolved params
   useEffect(() => {
-    if (params.roomId) {
-      setRoomId(params.roomId)
+    if (resolvedParams.roomId) {
+      setRoomId(resolvedParams.roomId)
     }
-  }, [params.roomId])
+  }, [resolvedParams.roomId])
 
   const handleLeaveRoom = () => {
     router.push("/")
@@ -34,7 +38,7 @@ export default function RoomPage({ params }: RoomPageProps) {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p>Cargando sala {params.roomId}...</p>
+          <p>Cargando sala {resolvedParams.roomId}...</p>
         </div>
       </div>
     )

@@ -32,7 +32,6 @@ export const VotingCard = memo(function VotingCard({
   canReveal,
   isRoomCreator,
 }: VotingCardProps) {
-  // Ensure we have valid numbers
   const totalParticipants = Math.max(allParticipantsCount || 0, 0)
   const votedCount = Math.max(votedParticipantsCount || 0, 0)
 
@@ -83,7 +82,7 @@ export const VotingCard = memo(function VotingCard({
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {/* Voting Status */}
+          {/* Estado de la votación */}
           <div className="text-center p-4 rounded-lg bg-blue-50 border border-blue-200">
             <div className="text-sm text-blue-700 mb-2 font-medium">Estado de la votación</div>
             <div className="text-2xl font-bold text-blue-800 mb-2">
@@ -105,28 +104,37 @@ export const VotingCard = memo(function VotingCard({
             )}
           </div>
 
-          {/* User's current vote */}
-          {hasVoted && userVote && (
+          {/* Muestra el voto actual sin botón de cambio */}
+          {hasVoted && userVote && !isRevealed && (
             <div className="text-center p-4 rounded-lg border-2 border-blue-200 bg-blue-50">
-              <div className="text-sm text-blue-700 mb-1 font-medium">Tu voto:</div>
+              <div className="text-sm text-blue-700 font-medium mb-1">Tu voto:</div>
               <div className="text-3xl font-bold font-mono text-blue-800">{userVote}</div>
             </div>
           )}
 
-          {/* Voting buttons */}
-          {!hasVoted && !isRevealed && (
-            <div className="grid grid-cols-3 gap-3">
-              {VOTE_OPTIONS.map((option) => (
-                <Button
-                  key={option}
-                  onClick={() => onVote(option)}
-                  variant="outline"
-                  size="lg"
-                  className="h-16 text-xl font-mono hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all duration-200 bg-white border-2 border-gray-300"
-                >
-                  {option}
-                </Button>
-              ))}
+          {/* Botones centrados */}
+          {!isRevealed && (
+            <div className="text-center">
+              <div className="flex flex-wrap justify-center gap-3">
+                {VOTE_OPTIONS.map((option) => {
+                  const isSelected = hasVoted && userVote === option
+                  return (
+                    <Button
+                      key={option}
+                      onClick={() => onVote(option)}
+                      variant="outline"
+                      size="lg"
+                      className={`h-16 w-20 text-xl font-mono transition-all duration-200 ${
+                        isSelected
+                          ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700 hover:border-blue-700"
+                          : "bg-white border-2 border-gray-300 hover:bg-blue-600 hover:text-white hover:border-blue-600"
+                      }`}
+                    >
+                      {option}
+                    </Button>
+                  )
+                })}
+              </div>
             </div>
           )}
 
@@ -138,18 +146,8 @@ export const VotingCard = memo(function VotingCard({
                   ? isRoomCreator
                     ? "Todos han votado. Haz clic en 'Revelar Votos' para ver los resultados."
                     : "Todos han votado. Esperando a que el creador revele los votos."
-                  : "Esperando a que todos los participantes voten..."}
+                  : "Puedes cambiar tu voto en cualquier momento antes de que se revelen los resultados."}
               </div>
-            </div>
-          )}
-
-          {/* Reveal button for mobile/small screens */}
-          {canReveal && !isRevealed && isRoomCreator && (
-            <div className="block sm:hidden">
-              <Button onClick={onReveal} className="w-full bg-blue-600 hover:bg-blue-700" size="lg">
-                <Eye className="mr-2 h-4 w-4" />
-                Revelar Votos
-              </Button>
             </div>
           )}
         </div>
